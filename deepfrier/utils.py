@@ -2,7 +2,6 @@ import csv
 import glob
 import numpy as np
 import tensorflow as tf
-from sklearn.metrics import average_precision_score
 
 from Bio import SeqIO
 from Bio.PDB.PDBParser import PDBParser
@@ -110,14 +109,6 @@ def norm_adj(A, symm=True):
         A /= A.sum(axis=1)[:, np.newaxis]
 
     return A
-
-
-def _micro_aupr(y_true, y_test):
-    return average_precision_score(y_true, y_test, average='micro')
-
-
-def micro_aupr(y_true, y_pred):
-    return tf.py_func(_micro_aupr, (y_true, y_pred), tf.double)
 
 
 def seq2onehot(seq):
