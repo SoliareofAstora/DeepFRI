@@ -235,30 +235,35 @@ class Predictor(object):
                 self.goidx2chains[idx].add(chain)
                 self.prot2goterms[chain].append((self.goterms[idx], self.gonames[idx], float(y[idx])))
 
-    def save_predictions(self, output_fn):
-        print ("### Saving predictions to *.json file...")
-        # pickle.dump({'pdb_chains': self.test_prot_list, 'Y_hat': self.Y_hat, 'goterms': self.goterms, 'gonames': self.gonames}, open(output_fn, 'wb'))
-        with open(output_fn, 'w') as fw:
-            out_data = {'pdb_chains': self.test_prot_list,
-                        'Y_hat': self.Y_hat.tolist(),
-                        'goterms': self.goterms.tolist(),
-                        'gonames': self.gonames.tolist()}
-            json.dump(out_data, fw, indent=1)
+    def export_json(self, output_fn):
+        data = []
+        for prot in self.prot2goterms:
+            sorted_rows = sorted(self.prot2goterms[prot], key=lambda x: x[2], reverse=True)
+            for row in sorted_rows:
+                data.append({
+                    'Protein': prot,
+                    'GO_term/EC_number': row[0],
+                    'Score': '{:.5f}'.format(row[2]),
+                    'GO_term/EC_number name': row[1]
+                })
 
-    def export_csv(self, output_fn, verbose):
-        with open(output_fn, 'w') as csvFile:
-            writer = csv.writer(csvFile, delimiter=',', quotechar='"')
-            writer.writerow(['### Predictions made by DeepFRI.'])
+        with open(output_fn, 'w') as f:
+            json.dump(data, f, indent=4)
+
+    def save_file(self, output_fn, delimiter, quotechar='"'):
+        with open(output_fn, 'w') as f:
+            writer = csv.writer(f, delimiter=delimiter, quotechar=quotechar)
             writer.writerow(['Protein', 'GO_term/EC_number', 'Score', 'GO_term/EC_number name'])
-            if verbose:
-                print ('Protein', 'GO-term/EC-number', 'Score', 'GO-term/EC-number name')
             for prot in self.prot2goterms:
                 sorted_rows = sorted(self.prot2goterms[prot], key=lambda x: x[2], reverse=True)
                 for row in sorted_rows:
-                    if verbose:
-                        print (prot, row[0], '{:.5f}'.format(row[2]), row[1])
                     writer.writerow([prot, row[0], '{:.5f}'.format(row[2]), row[1]])
-        csvFile.close()
+
+    def export_csv(self, output_fn):
+        self.save_file(output_fn, ",")
+
+    def export_tsv(self, output_fn):
+        self.save_file(output_fn, "\t")
 
     def compute_GradCAM(self, layer_name='GCNN_concatenate', use_guided_grads=False):
         print ("### Computing GradCAM for each function of every predicted protein...")
